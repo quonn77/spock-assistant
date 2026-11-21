@@ -5,14 +5,16 @@
 //! XML report of each class once the class is done (see `surefire`).
 
 mod modules;
+mod spec;
 mod surefire;
 
 use modules::{ROOT_ID, join, module_id, module_of, parse_modules};
+use openidea_plugin::language_features::{Document, GutterAction, LanguageFeatures};
 use openidea_plugin::{
     Error, Invocation, Location, Plugin, PluginRunConfiguration, PluginTestEvent, Position, Range, RunConfigurations,
     TestFailed, TestPassed, TestResults, TestSkipped, TestStart, host, register_plugin,
 };
-use surefire::{Case, Line, Outcome, classify, parse_cases, select_args, simple_name};
+use surefire::{Case, Line, Outcome, classify, filter_args, parse_cases, select_args, simple_name};
 
 /// How deep nested `<modules>` are followed.
 const MAX_MODULE_DEPTH: usize = 4;
@@ -32,8 +34,48 @@ impl Plugin for Main {
                 let args: Vec<String> = arg.map(|a| vec![a.to_owned()]).unwrap_or_default();
                 host::start_run(ROOT_ID, &args, false).map(Some)
             }
+            // Gutter icon: argument is `<config id>\t<class>[\t<feature>]`.
+            "run-spec" => {
+                let mut parts = arg.unwrap_or_default().split('\t');
+                let (Some(config), Some(class)) = (parts.next(), parts.next()) else {
+                    return Err("run-spec needs a configuration and a class".into());
+                };
+                let mut path = vec![class.to_owned()];
+                path.extend(parts.next().map(str::to_owned));
+                let args = filter_args(&[path]).ok_or("nothing to run")?;
+                host::start_run(config, &args, false).map(Some)
+            }
             _ => Err(Error::NotFound(id.into())),
         }
+    }
+}
+
+impl LanguageFeatures for Main {
+    fn gutter_actions(&mut self, doc: &Document) -> Vec<GutterAction> {
+        if !doc.path.ends_with(".groovy") {
+            return vec![];
+        }
+        let markers = spec::find_markers(&doc.text);
+        if markers.is_empty() {
+            return vec![];
+        }
+        let config = self.config_for_file(&doc.path);
+        markers
+            .into_iter()
+            .map(|m| {
+                let (tooltip, argument) = match &m.feature {
+                    Some(f) => (format!("Run '{f}'"), format!("{config}\t{}\t{f}", m.class)),
+                    None => (format!("Run {}", m.class), format!("{config}\t{}", m.class)),
+                };
+                GutterAction {
+                    line: m.line,
+                    icon: Some("run".into()),
+                    tooltip,
+                    command: "run-spec".into(),
+                    argument: Some(argument),
+                }
+            })
+            .collect()
     }
 }
 
@@ -86,6 +128,28 @@ fn collect_modules(project: &host::Project, parent: &str, depth: usize, out: &mu
 }
 
 impl Main {
+    /// Run configuration of the Maven module that owns `file`: the nearest folder above it with a
+    /// `pom.xml`, below the project root. Falls back to the whole-project run.
+    fn config_for_file(&self, file: &str) -> String {
+        let Some(project) = self.project() else { return ROOT_ID.to_owned() };
+        let Ok(root) = project.root() else { return ROOT_ID.to_owned() };
+        let root = root.replace('\\', "/");
+        let root = root.trim_end_matches('/');
+        let file = file.replace('\\', "/");
+        let head = file.get(..root.len()).unwrap_or("");
+        if !head.eq_ignore_ascii_case(root) {
+            return ROOT_ID.to_owned();
+        }
+        let mut dir = file[root.len()..].trim_matches('/').to_owned();
+        while let Some(i) = dir.rfind('/') {
+            dir.truncate(i);
+            if project.read_file(&join(&dir, "pom.xml")).is_ok() {
+                return module_id(&dir).unwrap_or_else(|| ROOT_ID.to_owned());
+            }
+        }
+        ROOT_ID.to_owned()
+    }
+
     fn project(&self) -> Option<host::Project> {
         let projects = host::projects().ok()?;
         let wanted = self.root.as_deref();
@@ -211,7 +275,7 @@ impl TestResults for Main {
     }
 }
 
-register_plugin!(Main, run_configurations, test_results);
+register_plugin!(Main, run_configurations, test_results, language_features);
 
 #[cfg(test)]
 mod tests {
@@ -317,5 +381,30 @@ mod tests {
         let t = [vec!["FooSpec".to_owned(), "fails".to_owned()]];
         assert!(plugin.select_tests(ROOT_ID, &t).is_some());
         assert_eq!(plugin.select_tests("other", &t), None);
+    }
+
+    #[test]
+    fn gutter_icons_run_the_class_or_one_feature_in_the_owning_module() {
+        let mock = host();
+        mock.add_file("core/pom.xml", "<project/>");
+        let mut plugin = Main::default();
+        let doc = Document {
+            path: "/p/core/src/test/groovy/org/acme/FooSpec.groovy".into(),
+            text: "class FooSpec extends Specification {
+  def \"adds two\"() {}
+}
+".into(),
+            ..Default::default()
+        };
+        let actions = plugin.gutter_actions(&doc);
+        assert_eq!(actions.len(), 2);
+        assert_eq!(actions[0].line, 0);
+        assert_eq!(actions[0].argument.as_deref(), Some("mvn-test.core	FooSpec"));
+        assert_eq!(actions[1].argument.as_deref(), Some("mvn-test.core	FooSpec	adds two"));
+        assert_eq!(actions[1].command, "run-spec");
+        let other = Document { path: "/p/readme.md".into(), ..Default::default() };
+        assert!(plugin.gutter_actions(&other).is_empty());
+        let top = Document { path: "/p/src/test/groovy/BarSpec.groovy".into(), text: "class BarSpec extends Specification {}".into(), ..Default::default() };
+        assert_eq!(plugin.gutter_actions(&top)[0].argument.as_deref(), Some("mvn-test	BarSpec"));
     }
 }

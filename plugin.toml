@@ -26,3 +26,12 @@ files = ["pom.xml"]
 id = "run-tests"
 title = "Spock Assistant: Run Spock Specs (Maven)"
 category = "Spock Assistant"
+
+[[contributes.commands]]
+id = "run-spec"
+title = "Spock Assistant: Run Spec (from the gutter)"
+category = "Spock Assistant"
+
+[[contributes.providers]]
+kinds = ["gutter-actions"]
+languages = ["groovy"]

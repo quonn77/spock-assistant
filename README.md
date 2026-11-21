@@ -17,7 +17,7 @@ Plugin id `quonn77.spock-assistant`. Planned, in this order:
      single feature (`-Dtest=Class#feature`).
    - How: Surefire's console only names test classes, so the per-feature results are read from the
      `target/surefire-reports/TEST-<class>.xml` of each class when it is done. Needs `process:mvn` and `project.read`.
-   - Not yet: gutter run icons, Gradle, the whole-project run in multi-module trees shows totals per class only (reports are per module), debug.
+   - Gutter run icons on spec classes and feature methods (run the class or one feature in its module). Not yet: Gradle, the whole-project run in multi-module trees shows totals per class only (reports are per module), debug.
 2. **Block validation** — diagnostics for block names, their order and completeness
    (`given` / `when` / `then` / `where`, missing `then`, ...).
 3. **Specification templates** — "New Specification" and create-test for Groovy, Java and Kotlin classes.

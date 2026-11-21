@@ -249,6 +249,13 @@ fn method_pattern(name: &str) -> String {
 /// Full Maven argument list that runs only the selected tests. A path is `[class]` or
 /// `[class, feature]` (the names shown in the test tree); anything else is not selectable.
 pub fn select_args(tests: &[Vec<String>]) -> Option<Vec<String>> {
+    let mut args = vec!["-B".to_owned(), "test".to_owned()];
+    args.extend(filter_args(tests)?);
+    Some(args)
+}
+
+/// Only the filter part of [`select_args`]: appended to a run that already has `-B test`.
+pub fn filter_args(tests: &[Vec<String>]) -> Option<Vec<String>> {
     if tests.is_empty() {
         return None;
     }
@@ -264,8 +271,6 @@ pub fn select_args(tests: &[Vec<String>]) -> Option<Vec<String>> {
         }
     }
     Some(vec![
-        "-B".into(),
-        "test".into(),
         format!("-Dtest={}", filters.join(",")),
         "-Dsurefire.failIfNoSpecifiedTests=false".into(),
         "-DfailIfNoTests=false".into(),
