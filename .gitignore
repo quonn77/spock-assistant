@@ -1,0 +1,23 @@
+# Rust / Cargo (Cargo.lock IS committed: this is a binary-like plugin crate)
+/target/
+**/*.rs.bk
+*.pdb
+
+# openidea-plugin build output and packages
+/dist/
+*.oiplugin
+*.wasm
+
+# Signing keys: never commit
+*.key
+*.pem
+
+# Editors / OS
+.idea/
+.vscode/
+*.iml
+.DS_Store
+Thumbs.db
+
+# Local agent state
+.claude/

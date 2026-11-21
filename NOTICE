@@ -1,0 +1,16 @@
+Spock Assistant (github.com/quonn77/spock-assistant)
+Copyright 2026 The spock-assistant contributors
+
+An unofficial Spock Framework support plugin for OpenIDEA. Not affiliated
+with, endorsed by, or maintained by the Spock Framework project, JetBrains,
+or the OpenIDEA project. "Spock" is used only to describe the testing
+framework this plugin works with.
+
+The block-structure rules (block names, their order and completeness) and the
+specification templates are a clean-room reimplementation in Rust, informed by
+Spock IntelliJ Plugin (https://github.com/lobodpav/spock-intellij-plugin,
+Apache License 2.0, by Pavel Lobodinsky). Where code or templates of that
+project are copied or adapted, the affected files say so in their header.
+
+This product uses the OpenIDEA plugin SDK
+(https://github.com/l0ng-ai/openidea, Apache License 2.0).

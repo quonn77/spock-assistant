@@ -1,0 +1,26 @@
+id = "quonn77.spock-assistant"
+name = "Spock Assistant"
+version = "0.1.0"
+description = "Unofficial Spock Framework support for OpenIDEA, not affiliated with the Spock Framework project. Early scaffold: sample commands only."
+authors = ["The spock-assistant contributors"]
+# Marketplace categories (up to 3): languages, themes, icon-themes, linters,
+# vcs, ai, frameworks, tools, other.
+categories = ["tools"]
+engines.openidea = "^1.0"
+# Built by `openidea-plugin build`. The code is loaded the first time one of
+# its commands runs; the commands below show in Find Action before that.
+wasm = "dist/plugin.wasm"
+
+# What the code may do. The user approves these when installing.
+[capabilities]
+required = ["editor.read"]
+
+[[contributes.commands]]
+id = "say-hello"
+title = "Spock Assistant: Say Hello"
+category = "Spock Assistant"
+
+[[contributes.commands]]
+id = "line-count"
+title = "Spock Assistant: Line Count of Active File"
+category = "Spock Assistant"
