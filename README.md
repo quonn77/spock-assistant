@@ -12,12 +12,12 @@ Plugin id `quonn77.spock-assistant`. Planned, in this order:
 
 1. **Run tests and see results** — *first brick done, not yet verified inside OpenIDEA.*
    - Done (unit-tested, and the Maven filter checked on a real Spock project): a `Spock specs (mvn test)`
-     run configuration for Maven projects (offered for any project with a root pom.xml); results in the test tree per spec and per
+     run configuration for the whole project plus one per Maven module (own working directory, own reports); results in the test tree per spec and per
      feature (passed / failed / skipped, duration, failure message); rerun failed tests and run a
      single feature (`-Dtest=Class#feature`).
    - How: Surefire's console only names test classes, so the per-feature results are read from the
      `target/surefire-reports/TEST-<class>.xml` of each class when it is done. Needs `process:mvn` and `project.read`.
-   - Not yet: gutter run icons, Gradle, multi-module layouts (reports of submodules), debug.
+   - Not yet: gutter run icons, Gradle, the whole-project run in multi-module trees shows totals per class only (reports are per module), debug.
 2. **Block validation** — diagnostics for block names, their order and completeness
    (`given` / `when` / `then` / `where`, missing `then`, ...).
 3. **Specification templates** — "New Specification" and create-test for Groovy, Java and Kotlin classes.
