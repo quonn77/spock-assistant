@@ -3,17 +3,44 @@
 /// Id of the configuration that runs the whole project from its root.
 pub const ROOT_ID: &str = "mvn-test";
 
-/// Configuration id of one module: `mvn-test:<module path relative to the project root>`.
-pub fn module_id(rel: &str) -> String {
-    format!("{ROOT_ID}:{rel}")
+/// The IDE accepts ids of `a-z 0-9 . - _` only (max 64, starting with a letter or digit), and one
+/// invalid id discards the whole list. A module path is therefore encoded reversibly: `[a-z0-9-]`
+/// stay, `/` becomes `.`, any other character becomes `_` plus its two-digit lowercase hex code.
+const MAX_ID: usize = 64;
+
+/// Configuration id of one module (`mvn-test.<encoded path>`); `None` when it would be too long.
+pub fn module_id(rel: &str) -> Option<String> {
+    let mut id = format!("{ROOT_ID}.");
+    for c in rel.chars() {
+        match c {
+            'a'..='z' | '0'..='9' | '-' => id.push(c),
+            '/' => id.push('.'),
+            c if (c as u32) < 0x100 => id.push_str(&format!("_{:02x}", c as u32)),
+            _ => return None,
+        }
+    }
+    (id.len() <= MAX_ID && !rel.is_empty()).then_some(id)
 }
 
 /// Module path of one of this plugin's configurations: `Some("")` for the root one, `None` for others.
-pub fn module_of(config: &str) -> Option<&str> {
+pub fn module_of(config: &str) -> Option<String> {
     if config == ROOT_ID {
-        return Some("");
+        return Some(String::new());
     }
-    config.strip_prefix(ROOT_ID).and_then(|r| r.strip_prefix(':'))
+    let enc = config.strip_prefix(ROOT_ID)?.strip_prefix('.')?;
+    let mut out = String::new();
+    let mut chars = enc.chars();
+    while let Some(c) = chars.next() {
+        match c {
+            '.' => out.push('/'),
+            '_' => {
+                let hex: String = chars.by_ref().take(2).collect();
+                out.push(u8::from_str_radix(&hex, 16).ok().map(char::from)?);
+            }
+            c => out.push(c),
+        }
+    }
+    Some(out)
 }
 
 /// `<module>` entries of a pom's `<modules>` block (comments ignored), in order.
@@ -68,10 +95,17 @@ mod tests {
     }
 
     #[test]
-    fn ids_round_trip() {
-        assert_eq!(module_of(ROOT_ID), Some(""));
-        assert_eq!(module_of(&module_id("x/y")), Some("x/y"));
+    fn ids_are_valid_and_round_trip() {
+        assert_eq!(module_of(ROOT_ID).as_deref(), Some(""));
         assert_eq!(module_of("other"), None);
+        for rel in ["x/y", "gesa-parent-pom", "My_Module/sub.v2", "core/sub-a"] {
+            let id = module_id(rel).unwrap();
+            assert!(id.starts_with("mvn-test."));
+            assert!(id.chars().all(|c| matches!(c, 'a'..='z' | '0'..='9' | '.' | '-' | '_')), "{id}");
+            assert_eq!(module_of(&id).as_deref(), Some(rel));
+        }
+        assert_eq!(module_id("gesa-parent-pom").unwrap(), "mvn-test.gesa-parent-pom");
+        assert_eq!(module_id(&"a/".repeat(40)), None, "too long for the IDE");
         assert_eq!(join("", "a"), "a");
         assert_eq!(join("a", "b"), "a/b");
     }

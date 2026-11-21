@@ -49,8 +49,9 @@ impl RunConfigurations for Main {
             collect_modules(&project, "", 0, &mut modules);
         }
         for rel in modules {
+            let Some(id) = module_id(&rel) else { continue };
             let cwd = format!("{root}/{rel}");
-            configs.push(maven_test(&module_id(&rel), &format!("Spock specs: {rel} (mvn test)"), Some(cwd)));
+            configs.push(maven_test(&id, &format!("Spock specs: {rel} (mvn test)"), Some(cwd)));
         }
         configs
     }
@@ -196,7 +197,7 @@ impl TestResults for Main {
     }
 
     fn parse(&mut self, config: &str, chunk: &str) -> Vec<PluginTestEvent> {
-        let base = module_of(config).unwrap_or("").to_owned();
+        let base = module_of(config).unwrap_or_default();
         self.pending.push_str(chunk);
         let mut events = vec![];
         while let Some(end) = self.pending.find('\n') {
@@ -255,18 +256,18 @@ mod tests {
         let mut plugin = Main::default();
         let configs = plugin.configurations("/p");
         let ids: Vec<_> = configs.iter().map(|c| c.id.as_str()).collect();
-        assert_eq!(ids, ["mvn-test", "mvn-test:core", "mvn-test:core/sub", "mvn-test:web"]);
+        assert_eq!(ids, ["mvn-test", "mvn-test.core", "mvn-test.core.sub", "mvn-test.web"]);
         assert_eq!(configs[0].cwd, None);
         assert_eq!(configs[1].cwd.as_deref(), Some("/p/core"));
         let events = plugin.parse(
-            "mvn-test:core",
+            "mvn-test.core",
             "[INFO] Running org.acme.FooSpec\n[INFO] Tests run: 3, Failures: 1, Errors: 0, Skipped: 0 -- in org.acme.FooSpec\n",
         );
         assert_eq!(events.len(), 7, "suite + 3 x (start, result)");
         let PluginTestEvent::SuiteStarted(s) = &events[0] else { panic!() };
         assert_eq!(s.location.as_ref().unwrap().path, "/p/core/src/test/groovy/org/acme/FooSpec.groovy");
         let mut plugin = Main::default();
-        assert!(plugin.select_tests("mvn-test:core", &[vec!["FooSpec".into()]]).is_some());
+        assert!(plugin.select_tests("mvn-test.core", &[vec!["FooSpec".into()]]).is_some());
     }
 
     #[test]
