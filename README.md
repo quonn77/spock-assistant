@@ -12,7 +12,7 @@ Plugin id `quonn77.spock-assistant`. Planned, in this order:
 
 1. **Run tests and see results** — *first brick done, not yet verified inside OpenIDEA.*
    - Done (unit-tested, and the Maven filter checked on a real Spock project): a `Spock specs (mvn test)`
-     run configuration for Maven projects that use Spock; results in the test tree per spec and per
+     run configuration for Maven projects (offered for any project with a root pom.xml); results in the test tree per spec and per
      feature (passed / failed / skipped, duration, failure message); rerun failed tests and run a
      single feature (`-Dtest=Class#feature`).
    - How: Surefire's console only names test classes, so the per-feature results are read from the

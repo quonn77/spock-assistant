@@ -37,14 +37,8 @@ impl Plugin for Main {
 impl RunConfigurations for Main {
     fn configurations(&mut self, project_root: &str) -> Vec<PluginRunConfiguration> {
         self.root = Some(project_root.to_owned());
-        // Offer the run only for projects that use Spock; when the pom cannot be read, offer it anyway.
-        if let Some(project) = self.project() {
-            if let Ok(pom) = project.read_file("pom.xml") {
-                if !pom.contains("spock") && project.read_file("src/test/groovy").is_err() {
-                    return vec![];
-                }
-            }
-        }
+        // Offered for every Maven project (the manifest asks for a pom.xml at the root). Spock may be
+        // declared in a module's pom rather than the root one, so the root pom is not a reliable filter.
         vec![PluginRunConfiguration {
             id: CONFIG_ID.into(),
             name: "Spock specs (mvn test)".into(),
@@ -205,15 +199,16 @@ mod tests {
     }
 
     #[test]
-    fn offers_the_run_only_for_spock_projects() {
+    fn offers_the_run_for_any_maven_project() {
         let mock = host();
         let mut plugin = Main::default();
         let configs = plugin.configurations("/p");
         assert_eq!(configs.len(), 1);
         assert_eq!(configs[0].program, "mvn");
         assert_eq!(configs[0].framework.as_deref(), Some("plugin"));
+        // Spock may live in a module's pom: a root pom without it still gets the run.
         mock.add_file("pom.xml", "<project/>");
-        assert!(plugin.configurations("/p").is_empty());
+        assert_eq!(plugin.configurations("/p").len(), 1);
     }
 
     #[test]
