@@ -17,9 +17,17 @@ Plugin id `quonn77.spock-assistant`. Planned, in this order:
      single feature (`-Dtest=Class#feature`).
    - How: Surefire's console only names test classes, so the per-feature results are read from the
      `target/surefire-reports/TEST-<class>.xml` of each class when it is done. Needs `process:mvn` and `project.read`.
-   - Gutter run icons on spec classes and feature methods (run the class or one feature in its module). Not yet: Gradle, the whole-project run in multi-module trees shows totals per class only (reports are per module), debug.
-2. **Block validation** — diagnostics for block names, their order and completeness
-   (`given` / `when` / `then` / `where`, missing `then`, ...).
+   - Gutter run icons on spec classes and feature methods (run the class or one feature in its module). Not yet: Gradle, the whole-project run in multi-module trees shows totals per class only (reports are per module).
+   - Debug: from the test tree (right-click a spec or a feature, Debug) after a run; it reuses the
+     same `-Dtest=` filter with OpenIDEA's Java debugger. Debugging the whole module run configuration
+     from the run selector works too. No Debug icon in the gutter: a plugin can only debug an
+     existing run configuration, so it could not filter by class or feature.
+2. **Block validation** — *first part done, not yet verified inside OpenIDEA.*
+   - Done: errors while typing on misplaced block labels in Groovy specs: `then` without a
+     `when`, `when` without a `then`, `given`/`setup` not first, `cleanup` followed by anything but
+     `where`, blocks after `where`. `and:` continues the block before it; labels inside closures,
+     strings and comments are ignored.
+   - Not yet: empty blocks, quick fixes, unknown labels.
 3. **Specification templates** — "New Specification" and create-test for Groovy, Java and Kotlin classes.
 
 ## Build

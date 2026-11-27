@@ -44,6 +44,11 @@ fn spec_class(line: &str) -> Option<&str> {
     after.trim_start().starts_with("extends").then_some(name)
 }
 
+/// Whether this line declares a class that extends something (a Spock spec candidate).
+pub fn is_spec_class(line: &str) -> bool {
+    spec_class(line).is_some()
+}
+
 /// Feature method declared on this line: `def "name"(`, `void 'name'(`, with modifiers allowed.
 fn feature_name(line: &str) -> Option<String> {
     let t = line.trim_start();

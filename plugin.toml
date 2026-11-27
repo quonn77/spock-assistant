@@ -1,7 +1,7 @@
 id = "quonn77.spock-assistant"
 name = "Spock Assistant"
 version = "0.1.0"
-description = "Unofficial Spock Framework support for OpenIDEA, not affiliated with the Spock Framework project. Runs a Maven project's Spock specs and shows the results per feature in the test tree."
+description = "Unofficial Spock Framework support for OpenIDEA, not affiliated with the Spock Framework project. Runs a Maven project's Spock specs and shows the results per feature in the test tree and checks the order of Spock blocks."
 authors = ["The spock-assistant contributors"]
 # Marketplace categories (up to 3): languages, themes, icon-themes, linters,
 # vcs, ai, frameworks, tools, other.
@@ -33,5 +33,5 @@ title = "Spock Assistant: Run Spec (from the gutter)"
 category = "Spock Assistant"
 
 [[contributes.providers]]
-kinds = ["gutter-actions"]
+kinds = ["gutter-actions", "diagnostics"]
 languages = ["groovy"]

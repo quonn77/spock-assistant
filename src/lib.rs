@@ -4,15 +4,17 @@
 //! The console of Surefire names test classes only, so per-feature results are read from the
 //! XML report of each class once the class is done (see `surefire`).
 
+mod blocks;
 mod modules;
 mod spec;
 mod surefire;
 
 use modules::{ROOT_ID, join, module_id, module_of, parse_modules};
+use openidea_plugin::diagnostics::DiagnosticsProvider;
 use openidea_plugin::language_features::{Document, GutterAction, LanguageFeatures};
 use openidea_plugin::{
-    Error, Invocation, Location, Plugin, PluginRunConfiguration, PluginTestEvent, Position, Range, RunConfigurations,
-    TestFailed, TestPassed, TestResults, TestSkipped, TestStart, host, register_plugin,
+    Diagnostic, Error, Invocation, Location, Plugin, PluginRunConfiguration, PluginTestEvent, Position, Range, RunConfigurations,
+    Severity, TestFailed, TestPassed, TestResults, TestSkipped, TestStart, host, register_plugin,
 };
 use surefire::{Case, Line, Outcome, classify, filter_args, parse_cases, select_args, simple_name};
 
@@ -47,6 +49,24 @@ impl Plugin for Main {
             }
             _ => Err(Error::NotFound(id.into())),
         }
+    }
+}
+
+impl DiagnosticsProvider for Main {
+    fn diagnostics(&mut self, doc: &openidea_plugin::diagnostics::Document) -> Vec<Diagnostic> {
+        if !doc.path.ends_with(".groovy") {
+            return vec![];
+        }
+        blocks::check(&doc.text)
+            .into_iter()
+            .map(|p| {
+                let range = Range::new(Position::new(p.line, p.start), Position::new(p.line, p.end));
+                let mut d = Diagnostic::new(range, Severity::Error, p.message);
+                d.source = Some("Spock".into());
+                d.code = Some("block-order".into());
+                d
+            })
+            .collect()
     }
 }
 
@@ -275,7 +295,7 @@ impl TestResults for Main {
     }
 }
 
-register_plugin!(Main, run_configurations, test_results, language_features);
+register_plugin!(Main, run_configurations, test_results, language_features, diagnostics);
 
 #[cfg(test)]
 mod tests {
